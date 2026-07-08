@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onyx Deployment Plan — Rakuten Payment App</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00c2a8;
+      --accent3: #f5a623;
+      --danger: #e05c5c;
+      --text: #e8eaf6;
+      --muted: #7b82a8;
+      --green: #4caf7d;
+      --font: 'Segoe UI', system-ui, sans-serif;
+      --mono: 'Fira Code', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+
+    /* ── Slide engine ── */
+    .slide { display: none; width: 100vw; height: 100vh; padding: 48px 64px; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+    .slide.active { display: flex; }
+
+    /* ── Navigation ── */
+    .nav { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 40px; padding: 10px 24px; z-index: 100; }
+    .nav button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; padding: 4px 8px; transition: color .2s; }
+    .nav button:hover { color: var(--accent); }
+    .nav .counter { color: var(--muted); font-size: 13px; min-width: 56px; text-align: center; }
+    .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .3s ease; z-index: 200; }
+
+    /* ── Slide: Cover ── */
+    .slide-cover { background: radial-gradient(ellipse at 30% 50%, #1e1760 0%, var(--bg) 65%); }
+    .slide-cover .tag { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 24px; }
+    .slide-cover h1 { font-size: 52px; font-weight: 800; line-height: 1.1; max-width: 700px; }
+    .slide-cover h1 span { color: var(--accent); }
+    .slide-cover p { margin-top: 20px; color: var(--muted); font-size: 18px; max-width: 560px; line-height: 1.6; }
+    .slide-cover .meta { margin-top: 40px; display: flex; gap: 32px; }
+    .slide-cover .meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .slide-cover .meta-item .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .slide-cover .meta-item .value { font-size: 15px; font-weight: 600; color: var(--accent2); }
+    .slide-cover .orb { position: absolute; right: -80px; top: 50%; transform: translateY(-50%); width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, #3d35b0 0%, transparent 70%); opacity: 0.4; pointer-events: none; }
+
+    /* ── Generic slide header ── */
+    .slide-header { margin-bottom: 36px; }
+    .slide-header .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+    .slide-header h2 { font-size: 36px; font-weight: 800; }
+    .slide-header p { margin-top: 10px; color: var(--muted); font-size: 15px; max-width: 700px; line-height: 1.6; }
+
+    /* ── Two-col layout ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+    .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card .icon { font-size: 18px; }
+    .card p, .card li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .card ul { padding-left: 16px; }
+
+    /* ── Architecture diagram ── */
+    .arch { display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%; }
+    .arch-row { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+    .arch-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; font-size: 12px; text-align: center; white-space: nowrap; }
+    .arch-box .name { font-weight: 700; color: var(--text); font-size: 12px; }
+    .arch-box .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .arch-box.accent { border-color: var(--accent); background: #1e1a3e; }
+    .arch-box.green { border-color: var(--green); background: #152820; }
+    .arch-box.orange { border-color: var(--accent3); background: #2a1e0a; }
+    .arch-arrow { color: var(--muted); font-size: 18px; line-height: 1; }
+    .arch-arrow.down { display: flex; justify-content: center; color: var(--muted); font-size: 18px; margin: 2px 0; }
+    .arch-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .arch-line { width: 1px; height: 20px; background: var(--border); margin: 0 auto; }
+
+    /* ── Data source table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; background: var(--surface2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge.green { background: #1a3326; color: var(--green); }
+    .badge.orange { background: #2a2010; color: var(--accent3); }
+    .badge.gray { background: var(--surface2); color: var(--muted); }
+
+    /* ── Timeline ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-item { display: flex; gap: 20px; }
+    .timeline-left { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+    .timeline-day { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .timeline-line { flex: 1; width: 2px; background: var(--border); margin: 4px 0; }
+    .timeline-content { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; flex: 1; }
+    .timeline-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .timeline-content ul { padding-left: 16px; }
+    .timeline-content li { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+    /* ── Risk table ── */
+    .risk-row { display: grid; grid-template-columns: 28px 1fr 1fr; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .risk-row:last-child { border-bottom: none; }
+    .risk-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .risk-num.high { background: #3d1515; color: var(--danger); }
+    .risk-num.med { background: #2a1e0a; color: var(--accent3); }
+    .risk-title { font-size: 13px; font-weight: 600; }
+    .risk-fix { font-size: 12px; color: var(--muted); }
+
+    /* ── Action items ── */
+    .action-list { display: flex; flex-direction: column; gap: 10px; }
+    .action-item { display: flex; align-items: flex-start; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .action-num { background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .action-body h4 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .action-body p { font-size: 12px; color: var(--muted); }
+
+    /* ── Code block ── */
+    .code-block { background: #0d0e16; border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; font-family: var(--mono); font-size: 12px; color: #a9b7d6; line-height: 1.7; overflow: auto; max-height: 320px; }
+    .code-block .comment { color: #4a5280; }
+    .code-block .key { color: var(--accent2); }
+    .code-block .val { color: var(--accent3); }
+    .code-block .cmd { color: #7ec8e3; }
+
+    /* ── Checklist ── */
+    .checklist { display: flex; flex-direction: column; gap: 8px; }
+    .check-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+    .check-item .box { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; }
+    .check-item .source { font-size: 10px; color: var(--accent); margin-left: auto; font-weight: 700; letter-spacing: 1px; }
+
+    /* ── Watermark ── */
+    .watermark { position: absolute; bottom: 80px; right: 64px; font-size: 11px; color: var(--border); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── Connector card specific ── */
+    .connector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .conn-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    .conn-card .conn-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .conn-card .conn-icon { font-size: 22px; }
+    .conn-card .conn-title { font-size: 14px; font-weight: 700; }
+    .conn-card .conn-status { margin-left: auto; }
+    .conn-card .conn-detail { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .conn-card .conn-detail strong { color: var(--text); font-weight: 600; }
+    .conn-card.warn { border-color: var(--accent3); }
+    .conn-card.skip { border-color: var(--border); opacity: 0.6; }
+
+    /* ── VM spec ── */
+    .spec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .spec-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .spec-card .spec-icon { font-size: 28px; margin-bottom: 8px; }
+    .spec-card .spec-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .spec-card .spec-min { font-size: 18px; font-weight: 800; color: var(--accent3); }
+    .spec-card .spec-rec { font-size: 12px; color: var(--green); margin-top: 2px; }
+
+    /* ── Sync table ── */
+    .sync-row { display: grid; grid-template-columns: 160px 1fr 140px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .sync-row:last-child { border-bottom: none; }
+    .sync-bar-wrap { background: var(--surface2); border-radius: 4px; height: 8px; width: 100%; }
+    .sync-bar { height: 8px; border-radius: 4px; background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 1 — COVER
+══════════════════════════════════════════════════════════ -->
+<div class="slide slide-cover active" id="s1">
+  <div class="orb"></div>
+  <div class="tag">Deployment Plan</div>
+  <h1>Rakuten Payment App<br /><span>Knowledge Base</span></h1>
+  <p>A self-hosted AI-powered search and chat platform that unifies documents from Box, Confluence, SharePoint, and Teams into a single interface.</p>
+  <div class="meta">
+    <div class="meta-item"><span class="label">Platform</span><span class="value">Onyx (open-source)</span></div>
+    <div class="meta-item"><span class="label">Hosting</span><span class="value">Internal VM · VPN only</span></div>
+    <div class="meta-item"><span class="label">Scope</span><span class="value">Chat + Search · v1</span></div>
+    <div class="meta-item"><span class="label">Users</span><span class="value">10+ team members</span></div>
+  </div>
+  <div class="watermark">Onyx Deployment Plan</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 2 — THE PROBLEM
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <div class="slide-header">
+    <div class="eyebrow">The Problem</div>
+    <h2>Knowledge is everywhere — and nowhere</h2>
+    <p>Payment app documents are scattered across 4+ systems. Finding the right answer requires knowing where to look first.</p>
+  </div>
+  <div class="three-col">
+    <div class="card">
+      <h3><span class="icon">📦</span> Box</h3>
+      <ul>
+        <li>Specs &amp; technical docs</li>
+        <li>Budget documents</li>
+        <li>Calculation tables</li>
+        <li>Primary source — no native Onyx connector</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">📘</span> Confluence</h3>
+      <ul>
+        <li>Product documentation</li>
+        <li>Technical design docs</li>
+        <li>Architecture decisions</li>
+        <li>Self-hosted Data Center at rakuten-it.com</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="icon">☁️</span> Microsoft 365</h3>
+      <ul>
+        <li>SharePoint: marketing &amp; sales docs</li>
+        <li>Teams: project discussions</li>
+        <li>Outlook: email threads (v2)</li>
+        <li>Requires Azure AD app registration</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top:24px; background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 18px 24px; display:flex; align-items:center; gap:16px;">
+    <span style="font-size:24px;">🎯</span>
+    <p style="font-size:14px; line-height:1.6;"><strong>Goal:</strong> One chat interface where any team member can ask a question in plain language and get an AI-generated answer with links back to the exact source documents — without moving those documents anywhere.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 3 — SOLUTION OVERVIEW
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <div class="slide-header">
+    <div class="eyebrow">Solution</div>
+    <h2>Why Onyx?</h2>
+    <p>Open-source, self-hosted, no new cloud subscriptions. Runs entirely on your internal VM.</p>
+  </div>
+  <div class="two-col">
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3><span class="icon">🔒</span> Fully Internal</h3>
+        <p>Runs on your company VM, accessible over VPN only. Documents never leave your network — only text embeddings are stored locally.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🔌</span> Native Connectors</h3>
+        <p>Built-in support for Confluence (Data Center), SharePoint, and Teams. No custom integration code for these sources.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🤖</span> Uses Your LLM Gateway</h3>
+        <p>Points directly at Rakuten's internal OpenAI-compatible LLM endpoint. No external AI API calls, no extra cost.</p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3><span class="icon">💬</span> Chat with Citations</h3>
+        <p>Answers include links back to the exact source document, page, or Teams message. Users can verify and drill in.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🔄</span> Auto-Sync</h3>
+        <p>Connectors poll on a schedule (every 10–60 min). New and updated documents are automatically re-indexed.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">👥</span> Multi-User</h3>
+        <p>Web UI accessible by the whole team. Username/password auth restricted to rakuten.com domain. 10+ users supported.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 4 — ARCHITECTURE
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <div class="slide-header">
+    <div class="eyebrow">Architecture</div>
+    <h2>System Overview — 11 Docker Services</h2>
+  </div>
+  <div class="two-col" style="align-items:start; gap:40px;">
+    <div class="arch" style="gap:4px;">
+      <div class="arch-row">
+        <div class="arch-box accent"><div class="name">Team Browsers</div><div class="sub">VPN-connected users</div></div>
+      </div>
+      <div class="arch-arrow down">↓</div>
+      <div class="arch-row">
+        <div class="arch-box accent"><div class="name">nginx</div><div class="sub">TLS · port 443</div></div>
+      </div>
+      <div class="arch-arrow down">↓</div>
+      <div class="arch-row" style="gap:20px;">
+        <div class="arch-box"><div class="name">web_server</div><div class="sub">Next.js UI · :3000</div></div>
+        <div class="arch-box"><div class="name">api_server</div><div class="sub">FastAPI · :8080</div></div>
+      </div>
+      <div class="arch-arrow down">↓</div>
+      <div class="arch-row" style="gap:10px;">
+        <div class="arch-box"><div class="name">postgres</div><div class="sub">users · metadata</div></div>
+        <div class="arch-box"><div class="name">opensearch</div><div class="sub">vector + BM25</div></div>
+        <div class="arch-box"><div class="name">redis</div><div class="sub">task queue</div></div>
+        <div class="arch-box"><div class="name">minio</div><div class="sub">file objects</div></div>
+      </div>
+      <div class="arch-arrow down">↓</div>
+      <div class="arch-row">
+        <div class="arch-box"><div class="name">background worker</div><div class="sub">connector polling · indexing</div></div>
+      </div>
+      <div class="arch-arrow down">↓</div>
+      <div class="arch-row" style="gap:20px;">
+        <div class="arch-box green"><div class="name">indexing_model_server</div><div class="sub">nomic-embed-text · local</div></div>
+        <div class="arch-box orange"><div class="name">Rakuten LLM Gateway</div><div class="sub">OpenAI-compatible · internal</div></div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Two key data flows</div>
+      <div class="card">
+        <h3><span class="icon">📥</span> Indexing Path</h3>
+        <p style="font-size:12px;">Background worker → fetches docs from connectors → sends to embedding model → writes vectors to OpenSearch + metadata to Postgres</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">💬</span> Query Path</h3>
+        <p style="font-size:12px;">Browser → nginx → api_server → hybrid search in OpenSearch → context sent to LLM gateway → streamed answer + citations back to user</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🔐</span> Auth Path</h3>
+        <p style="font-size:12px;">api_server handles sessions against Postgres · AUTH_TYPE=basic · domain-restricted to rakuten.com / rakuten-it.com</p>
+      </div>
+      <div style="background: var(--surface2); border-radius: 8px; padding: 12px 16px; font-size:12px; color:var(--muted);">
+        <strong style="color:var(--text);">Original docs stay in place.</strong> Only text embeddings (~few KB per chunk) are stored on the VM. Box/Confluence/SharePoint files are never copied.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 5 — DATA SOURCES
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <div class="slide-header">
+    <div class="eyebrow">Data Sources</div>
+    <h2>What gets indexed in v1</h2>
+  </div>
+  <div class="connector-grid">
+    <div class="conn-card">
+      <div class="conn-header">
+        <span class="conn-icon">📘</span>
+        <span class="conn-title">Confluence Data Center</span>
+        <span class="conn-status"><span class="badge green">Native</span></span>
+      </div>
+      <div class="conn-detail">
+        URL: <strong>https://confluence.rakuten-it.com</strong><br />
+        Auth: <strong>Personal Access Token (PAT)</strong> — not password<br />
+        Critical: <strong>"Is Cloud" must be UNCHECKED</strong><br />
+        Sync: <strong>every 10 min</strong> (Onyx default)
+      </div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-header">
+        <span class="conn-icon">📁</span>
+        <span class="conn-title">SharePoint</span>
+        <span class="conn-status"><span class="badge green">Native</span></span>
+      </div>
+      <div class="conn-detail">
+        Auth: <strong>Azure AD app registration</strong><br />
+        Permissions: <strong>Sites.Read.All</strong> (Graph)<br />
+        Requires: <strong>Admin consent from Rakuten Azure admin</strong><br />
+        Sync: <strong>every 60 min</strong> (delta API, lightweight)
+      </div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-header">
+        <span class="conn-icon">💬</span>
+        <span class="conn-title">Microsoft Teams</span>
+        <span class="conn-status"><span class="badge green">Native</span></span>
+      </div>
+      <div class="conn-detail">
+        Auth: <strong>Reuse SharePoint Azure app</strong><br />
+        Indexes: <strong>channel messages + threads</strong> only<br />
+        Not indexed: DMs, private channels, file attachments<br />
+        Sync: <strong>every 60 min</strong>
+      </div>
+    </div>
+    <div class="conn-card warn">
+      <div class="conn-header">
+        <span class="conn-icon">📦</span>
+        <span class="conn-title">Box</span>
+        <span class="conn-status"><span class="badge orange">Workaround</span></span>
+      </div>
+      <div class="conn-detail">
+        No native connector — <strong>Box Drive sync → File connector</strong><br />
+        Install Box Drive on VM → sync payment app folders locally<br />
+        Onyx File connector indexes the local directory<br />
+        Cron re-sync: <strong>every 4 hours</strong>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px; display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 18px;">
+    <span style="font-size:20px;">📧</span>
+    <div>
+      <strong style="font-size:13px;">Outlook</strong>
+      <span class="badge gray" style="margin-left:8px;">Deferred to v2</span>
+      <p style="font-size:12px; color:var(--muted); margin-top:2px;">No native connector. IMAP-only option is unreliable in corporate Exchange environments. High setup cost, low value for v1.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 6 — VM + DEPLOYMENT
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+  <div class="slide-header">
+    <div class="eyebrow">Infrastructure</div>
+    <h2>VM Spec &amp; Deployment</h2>
+  </div>
+  <div class="spec-grid">
+    <div class="spec-card">
+      <div class="spec-icon">🖥️</div>
+      <div class="spec-label">CPU</div>
+      <div class="spec-min">8 vCPU</div>
+      <div class="spec-rec">Recommended: 12+ vCPU</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-icon">💾</div>
+      <div class="spec-label">RAM</div>
+      <div class="spec-min">16 GB</div>
+      <div class="spec-rec">Recommended: 32 GB</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-icon">💿</div>
+      <div class="spec-label">Disk (SSD)</div>
+      <div class="spec-min">100 GB</div>
+      <div class="spec-rec">Recommended: 250 GB</div>
+    </div>
+  </div>
+  <div class="two-col" style="align-items:start;">
+    <div class="code-block">
+<span class="comment"># Clone and configure</span>
+<span class="cmd">git clone</span> --depth 1 https://github.com/onyx-dot-app/onyx.git
+<span class="cmd">cd</span> onyx/deployment/docker_compose
+<span class="cmd">cp</span> env.template .env
+<span class="comment"># Edit .env with your values (next slide)</span>
+<span class="cmd">cp</span> env.nginx.template .env.nginx
+
+<span class="comment"># Place TLS cert (from IT/PKI team)</span>
+../data/sslcerts/fullchain.pem
+../data/sslcerts/privkey.pem
+
+<span class="comment"># Launch all 11 services</span>
+<span class="cmd">docker compose</span> -f docker-compose.prod-no-letsencrypt.yml up -d
+
+<span class="comment"># First startup: ~10 min (model download)</span>
+<span class="cmd">docker compose</span> ps  <span class="comment"># wait for all "healthy"</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="card">
+        <h3><span class="icon">⚠️</span> OpenSearch Memory — Critical</h3>
+        <p>Set heap to exactly 50% of VM RAM. On 32 GB VM: <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g</code>. If OpenSearch OOMs, it restarts and may corrupt the index.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🌐</span> Outbound Internet Required (once)</h3>
+        <p>The embedding model server downloads ~1.5 GB from HuggingFace on first start. Whitelist <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">huggingface.co</code> on the VM firewall before Day 1.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">👤</span> First Admin Account</h3>
+        <p>Immediately after containers are healthy, open the UI and create the first account. <strong>The first account auto-becomes admin.</strong> Do this before sharing the URL with the team.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 7 — CONFIG
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div class="slide-header">
+    <div class="eyebrow">Configuration</div>
+    <h2>Critical .env Values</h2>
+    <p>These must be set before <code style="background:var(--surface2); padding:1px 8px; border-radius:4px; font-family:var(--mono); font-size:13px;">docker compose up</code>. Items marked ACTION REQUIRED need your input.</p>
+  </div>
+  <div class="two-col" style="align-items:start;">
+    <div class="code-block">
+<span class="comment"># ── Version (pin to a release tag) ──────────</span>
+<span class="key">IMAGE_TAG</span>=<span class="val">v2.x.x</span>          <span class="comment"># ACTION REQUIRED</span>
+
+<span class="comment"># ── Auth ────────────────────────────────────</span>
+<span class="key">AUTH_TYPE</span>=<span class="val">basic</span>
+<span class="key">VALID_EMAIL_DOMAINS</span>=<span class="val">rakuten.com,rakuten-it.com</span>
+<span class="key">SECRET_KEY</span>=<span class="val">&lt;openssl rand -hex 32&gt;</span>  <span class="comment"># ACTION REQUIRED</span>
+
+<span class="comment"># ── PostgreSQL ───────────────────────────────</span>
+<span class="key">POSTGRES_PASSWORD</span>=<span class="val">&lt;strong password&gt;</span>  <span class="comment"># ACTION REQUIRED</span>
+
+<span class="comment"># ── OpenSearch ───────────────────────────────</span>
+<span class="key">OPENSEARCH_ADMIN_PASSWORD</span>=<span class="val">&lt;password&gt;</span>  <span class="comment"># ACTION REQUIRED</span>
+<span class="key">OPENSEARCH_JAVA_OPTS</span>=<span class="val">-Xms8g -Xmx8g</span>  <span class="comment"># 50% of RAM</span>
+
+<span class="comment"># ── MinIO (object store) ─────────────────────</span>
+<span class="key">MINIO_ROOT_USER</span>=<span class="val">onyxminio</span>
+<span class="key">MINIO_ROOT_PASSWORD</span>=<span class="val">&lt;password&gt;</span>  <span class="comment"># ACTION REQUIRED</span>
+<span class="key">S3_AWS_ACCESS_KEY_ID</span>=<span class="val">onyxminio</span>
+<span class="key">S3_AWS_SECRET_ACCESS_KEY</span>=<span class="val">&lt;same as above&gt;</span>
+
+<span class="comment"># ── Domain ───────────────────────────────────</span>
+<span class="key">WEB_DOMAIN</span>=<span class="val">https://onyx.internal.rakuten.com</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="card">
+        <h3><span class="icon">🤖</span> LLM Gateway — Admin Panel</h3>
+        <p>After deployment, configure via:<br/><strong>Admin Panel → Language Models → Add Provider</strong><br/>Type: LiteLLM Proxy · API Base: your internal gateway URL · Model: exact name your gateway expects</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🔤</span> Embedding — Local (no config needed)</h3>
+        <p>The <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">indexing_model_server</code> runs <strong>nomic-embed-text</strong> locally. No API key required. Uses ~4 GB RAM after model load. No changes needed for v1.</p>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🌐</span> .env.nginx</h3>
+        <p>Set <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">DOMAIN=onyx.internal.rakuten.com</code> and place the internal TLS cert in <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">../data/sslcerts/</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 8 — TIMELINE
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="slide-header">
+    <div class="eyebrow">Implementation</div>
+    <h2>Day-by-Day Rollout Plan</h2>
+  </div>
+  <div class="two-col" style="align-items:start;">
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Day 1</div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <h4>Infrastructure Setup</h4>
+          <ul>
+            <li>Provision Linux VM (8 vCPU / 16 GB / 100 GB SSD min)</li>
+            <li>Install Docker Engine + Compose plugin</li>
+            <li>Request TLS cert for onyx.internal.rakuten.com</li>
+            <li>Whitelist huggingface.co on VM firewall</li>
+            <li>Get LLM gateway URL + API key from gateway team</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Day 2</div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <h4>Core Deployment</h4>
+          <ul>
+            <li>Clone Onyx repo, configure .env + .env.nginx</li>
+            <li>Place TLS cert, docker compose up -d</li>
+            <li>Wait ~10 min for model download + healthy state</li>
+            <li>Create first admin account in browser</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Day 3</div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <h4>LLM + Confluence</h4>
+          <ul>
+            <li>Configure Rakuten LLM gateway in Admin Panel</li>
+            <li>Test chat before proceeding</li>
+            <li>Generate Confluence PAT, create connector (Is Cloud = OFF)</li>
+            <li>Verify first sync + document count &gt; 0</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Day 4</div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <h4>SharePoint + Teams</h4>
+          <ul>
+            <li>Azure AD: register Onyx-SharePoint-Connector app</li>
+            <li>Add Graph + SharePoint API permissions</li>
+            <li>Grant admin consent (needs Rakuten Azure admin)</li>
+            <li>Create client secret (24-month expiry — set reminder)</li>
+            <li>Configure SharePoint + Teams connectors in Onyx</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Day 5</div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-content">
+          <h4>Box + User Onboarding</h4>
+          <ul>
+            <li>Install Box Drive on VM (Linux client)</li>
+            <li>Sign in with service account, sync payment app folders</li>
+            <li>Add File connector in Onyx pointing to sync directory</li>
+            <li>Set up cron for 4-hour re-sync</li>
+            <li>Share URL with team — self-register with company email</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-day">Ongoing</div>
+        </div>
+        <div class="timeline-content">
+          <h4>Maintenance</h4>
+          <ul>
+            <li>Monitor connector sync status in Admin Panel</li>
+            <li>Rotate SharePoint client secret before expiry</li>
+            <li>Assign admin roles to team leads</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 9 — RISKS
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+  <div class="slide-header">
+    <div class="eyebrow">Risk Register</div>
+    <h2>Top Risks &amp; Mitigations</h2>
+  </div>
+  <div class="two-col" style="align-items:start;">
+    <div>
+      <div class="risk-row">
+        <div class="risk-num high">1</div>
+        <div>
+          <div class="risk-title">OpenSearch OOM crash</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: High</div>
+        </div>
+        <div class="risk-fix">Set heap = exactly 50% of VM RAM before first start. Never exceed 32 GB.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num high">2</div>
+        <div>
+          <div class="risk-title">Box — no native connector</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: High (primary source)</div>
+        </div>
+        <div class="risk-fix">Use Box Drive sync → File connector. Test Box Drive Linux client early. Fallback: rclone.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num high">3</div>
+        <div>
+          <div class="risk-title">SharePoint admin consent not granted</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: High (blocks Day 4)</div>
+        </div>
+        <div class="risk-fix">Identify Rakuten Azure Global Admin before Day 4. Consent is mandatory — connector silently fails without it.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num med">4</div>
+        <div>
+          <div class="risk-title">Confluence auth confusion (DC vs Cloud)</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: Medium</div>
+        </div>
+        <div class="risk-fix">Uncheck "Is Cloud". Use PAT not password. Check logs for 401 errors if sync stalls.</div>
+      </div>
+    </div>
+    <div>
+      <div class="risk-row">
+        <div class="risk-num med">5</div>
+        <div>
+          <div class="risk-title">SharePoint client secret expires in 24 months</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: Medium (silent failure)</div>
+        </div>
+        <div class="risk-fix">Set calendar reminder for 22 months after Day 4. Expiry causes silent indexing stop.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num med">6</div>
+        <div>
+          <div class="risk-title">Model server slow on first start</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: Medium</div>
+        </div>
+        <div class="risk-fix">Wait 10 min before testing. Ensure huggingface.co is reachable from VM on Day 1.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num med">7</div>
+        <div>
+          <div class="risk-title">LLM gateway model name mismatch</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: Medium</div>
+        </div>
+        <div class="risk-fix">Confirm exact model name string with gateway team before Day 3. Test with curl first.</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-num med">8</div>
+        <div>
+          <div class="risk-title">Confluence service account missing permissions</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">Severity: Medium</div>
+        </div>
+        <div class="risk-fix">Use a Confluence admin account for the indexer service account to avoid space-level gaps.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 10 — VERIFICATION
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+  <div class="slide-header">
+    <div class="eyebrow">Go-Live Checklist</div>
+    <h2>Verification Steps Before Sharing with Team</h2>
+  </div>
+  <div class="two-col" style="align-items:start;">
+    <div class="checklist">
+      <div class="check-item"><div class="box"></div> All 11 containers show <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 6px; border-radius:4px;">running (healthy)</code> via docker compose ps <span class="source">INFRA</span></div>
+      <div class="check-item"><div class="box"></div> UI accessible at https://onyx.internal.rakuten.com over VPN <span class="source">INFRA</span></div>
+      <div class="check-item"><div class="box"></div> LLM gateway responds — test chat message returns an answer <span class="source">LLM</span></div>
+      <div class="check-item"><div class="box"></div> Confluence sync completes with document count &gt; 0 <span class="source">CONFLUENCE</span></div>
+      <div class="check-item"><div class="box"></div> SharePoint sync completes with document count &gt; 0 <span class="source">SHAREPOINT</span></div>
+    </div>
+    <div class="checklist">
+      <div class="check-item"><div class="box"></div> Teams sync completes with message count &gt; 0 <span class="source">TEAMS</span></div>
+      <div class="check-item"><div class="box"></div> Box files appear in File connector after Box Drive sync <span class="source">BOX</span></div>
+      <div class="check-item"><div class="box"></div> End-to-end RAG: ask a known question → answer + correct source citation <span class="source">E2E</span></div>
+      <div class="check-item"><div class="box"></div> Team member self-registers with rakuten.com email successfully <span class="source">AUTH</span></div>
+      <div class="check-item"><div class="box"></div> Calendar reminder set for SharePoint secret rotation (22 months) <span class="source">OPS</span></div>
+    </div>
+  </div>
+  <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 16px; text-align:center;">
+      <div style="font-size:22px; margin-bottom:4px;">🔍</div>
+      <div style="font-size:12px; color:var(--muted);">Check background logs</div>
+      <code style="font-family:var(--mono); font-size:11px; color:var(--accent2);">docker logs onyx-background-1 --tail 100</code>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 16px; text-align:center;">
+      <div style="font-size:22px; margin-bottom:4px;">📊</div>
+      <div style="font-size:12px; color:var(--muted);">Monitor connector status</div>
+      <div style="font-size:12px; color:var(--accent2);">Admin Panel → Connectors</div>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 16px; text-align:center;">
+      <div style="font-size:22px; margin-bottom:4px;">🔄</div>
+      <div style="font-size:12px; color:var(--muted);">Trigger manual re-index</div>
+      <div style="font-size:12px; color:var(--accent2);">Admin Panel → Connectors → Re-index</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 11 — ACTION ITEMS
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+  <div class="slide-header">
+    <div class="eyebrow">Before You Start</div>
+    <h2>7 Things to Collect First</h2>
+    <p>These are external dependencies — gather them in parallel before Day 1 to avoid blockers.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div class="action-item">
+      <div class="action-num">1</div>
+      <div class="action-body"><h4>Provision Linux VM</h4><p>Coordinate with IT team. Min: 8 vCPU / 16 GB RAM / 100 GB SSD. Recommended: 12 vCPU / 32 GB / 250 GB.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">2</div>
+      <div class="action-body"><h4>Internal TLS Certificate</h4><p>Request from IT/PKI team for <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 6px; border-radius:4px;">onyx.internal.rakuten.com</code>. Signed by company internal CA.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">3</div>
+      <div class="action-body"><h4>LLM Gateway Credentials</h4><p>Get endpoint URL + API key from the team managing Rakuten's internal LLM gateway. Confirm the exact model name string.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">4</div>
+      <div class="action-body"><h4>Confluence Service Account + PAT</h4><p>Create or identify a service account with admin access to all spaces. Generate a Personal Access Token in Confluence settings.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">5</div>
+      <div class="action-body"><h4>Azure Admin for SharePoint/Teams</h4><p>Find a Rakuten Azure Global Admin or Application Administrator who can grant app consent on Day 4. This is a blocker — identify early.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">6</div>
+      <div class="action-body"><h4>Box Folder Scope Decision</h4><p>Decide which Box folders to include in the sync (payment app scope only, or broader). Identify the Box service account to use.</p></div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">7</div>
+      <div class="action-body"><h4>Pin Onyx Release Version</h4><p>Check the latest stable release at github.com/onyx-dot-app/onyx/releases. Pin <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 6px; border-radius:4px;">IMAGE_TAG</code> to it — never use "latest" in production.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 12 — APPENDIX: LLM GATEWAY FLOW
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s12">
+  <div class="slide-header">
+    <div class="eyebrow">Appendix A — LLM Gateway</div>
+    <h2>How Onyx connects to the Rakuten LLM Gateway</h2>
+    <p>Every chat query travels this path. No external AI calls — everything stays inside your network.</p>
+  </div>
+  <div class="two-col" style="align-items:start; gap:32px;">
+    <!-- Flow diagram -->
+    <div style="display:flex; flex-direction:column; gap:0;">
+      <div style="background:var(--surface); border:1px solid var(--accent); border-radius:10px; padding:12px 18px; text-align:center;">
+        <div style="font-size:11px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">User</div>
+        <div style="font-size:13px;">Types a question in Onyx chat UI</div>
+      </div>
+      <div class="arch-arrow down" style="text-align:center; padding:4px 0;">↓</div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 18px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">api_server (Docker)</div>
+        <div style="font-size:13px;">Builds RAG prompt = question + retrieved doc chunks from OpenSearch</div>
+      </div>
+      <div class="arch-arrow down" style="text-align:center; padding:4px 0;">↓</div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 18px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">LiteLLM (inside Docker)</div>
+        <div style="font-size:13px;">Translates request to OpenAI-compatible format, injects API key</div>
+      </div>
+      <div class="arch-arrow down" style="text-align:center; padding:4px 0;">↓</div>
+      <div style="background:#1e1a3e; border:1px solid var(--accent); border-radius:10px; padding:12px 18px; text-align:center;">
+        <div style="font-size:11px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Rakuten LLM Gateway (internal network)</div>
+        <div style="font-size:13px;"><code style="font-family:var(--mono); font-size:12px;">POST /v1/chat/completions</code></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Bearer token auth · streamed response</div>
+      </div>
+      <div class="arch-arrow down" style="text-align:center; padding:4px 0;">↓</div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 18px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Back to User</div>
+        <div style="font-size:13px;">Streamed answer + source document citations</div>
+      </div>
+    </div>
+    <!-- Config + HTTP request -->
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3><span class="icon">⚙️</span> What you configure in Admin Panel</h3>
+        <table style="margin-top:8px;">
+          <tr>
+            <th>Field</th><th>Example Value</th>
+          </tr>
+          <tr>
+            <td style="font-size:12px; color:var(--text);">Provider Type</td>
+            <td style="font-size:12px; color:var(--accent2);">LiteLLM Proxy (or Custom)</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; color:var(--text);">API Base URL</td>
+            <td style="font-size:12px; color:var(--accent2);">https://llm-gateway.rakuten-it.com/v1</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; color:var(--text);">API Key</td>
+            <td style="font-size:12px; color:var(--accent2);">sk-rakuten-xxxx</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; color:var(--text);">Model Name</td>
+            <td style="font-size:12px; color:var(--accent2);">gpt-4o <em style="color:var(--muted);">(exact string — confirm with gateway team)</em></td>
+          </tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3><span class="icon">📡</span> Actual HTTP request Onyx sends</h3>
+        <div class="code-block" style="margin-top:8px; font-size:11px;">
+<span class="cmd">POST</span> https://llm-gateway.rakuten-it.com/v1/chat/completions
+<span class="key">Authorization:</span> <span class="val">Bearer sk-rakuten-xxxx</span>
+<span class="key">Content-Type:</span> <span class="val">application/json</span>
+
+{
+  <span class="key">"model"</span>: <span class="val">"gpt-4o"</span>,
+  <span class="key">"messages"</span>: [
+    {<span class="key">"role"</span>: <span class="val">"system"</span>, <span class="key">"content"</span>: <span class="val">"You are a helpful assistant..."</span>},
+    {<span class="key">"role"</span>: <span class="val">"user"</span>, <span class="key">"content"</span>: <span class="val">"What are the fee structures?\n\n[Doc chunks...]"</span>}
+  ],
+  <span class="key">"stream"</span>: <span class="val">true</span>
+}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 13 — APPENDIX: LLM GATEWAY REQUIREMENTS + TROUBLESHOOTING
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s13">
+  <div class="slide-header">
+    <div class="eyebrow">Appendix B — LLM Gateway</div>
+    <h2>Requirements, Verification &amp; Troubleshooting</h2>
+  </div>
+  <div class="two-col" style="align-items:start; gap:28px;">
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3><span class="icon">✅</span> What your gateway must support</h3>
+        <ul style="margin-top:8px;">
+          <li>Accept <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 5px; border-radius:3px;">POST /v1/chat/completions</code> endpoint</li>
+          <li>Bearer token authentication via <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 5px; border-radius:3px;">Authorization</code> header</li>
+          <li>OpenAI-compatible request body format</li>
+          <li>Streaming responses (<code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 5px; border-radius:3px;">stream: true</code>) — required for chat UX</li>
+          <li>Standard error responses (4xx/5xx with JSON body)</li>
+          <li>Reachable from the Docker VM over internal network</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🧪</span> Pre-flight test — run from the VM on Day 3</h3>
+        <div class="code-block" style="margin-top:8px; font-size:11px;">
+<span class="cmd">curl</span> -s https://llm-gateway.rakuten-it.com/v1/chat/completions \
+  -H <span class="val">"Authorization: Bearer YOUR_API_KEY"</span> \
+  -H <span class="val">"Content-Type: application/json"</span> \
+  -d <span class="val">'{
+    "model": "YOUR_MODEL_NAME",
+    "messages": [{"role": "user", "content": "Say hello"}],
+    "stream": false
+  }'</span>
+        </div>
+        <p style="margin-top:10px; font-size:12px;">
+          <strong style="color:var(--green);">Pass:</strong> JSON response with <code style="font-family:var(--mono); font-size:11px; background:var(--surface2); padding:1px 5px; border-radius:3px;">choices[0].message.content</code><br/>
+          <strong style="color:var(--danger);">Fail:</strong> 401 / 403 / 404 — fix before configuring Onyx
+        </p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card">
+        <h3><span class="icon">⚠️</span> Common failures &amp; fixes</h3>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div style="background:var(--surface2); border-radius:8px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--danger);">404 — Model not found</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">Model name string is wrong. Gateway often uses internal names like <code style="font-family:var(--mono); font-size:11px;">rakuten/gpt-4o</code> — confirm exact string with gateway team.</div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--danger);">401 — Unauthorized</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">API key is wrong, expired, or scoped to a different project. Get a fresh key from the gateway team.</div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent3);">Chat hangs / times out</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">VM firewall blocks outbound to gateway host. Check: <code style="font-family:var(--mono); font-size:11px;">curl -v https://llm-gateway.rakuten-it.com</code> from the VM.</div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent3);">Garbled / truncated answers</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">Gateway streaming format is not fully OpenAI-compatible. Ask gateway team to confirm SSE format compliance.</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 18px;">
+        <div style="font-size:12px; font-weight:700; margin-bottom:6px;">3 things to confirm with the gateway team before Day 3</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="background:var(--accent); color:#fff; font-size:11px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</div>
+            <div style="font-size:12px; color:var(--muted);">Exact <strong style="color:var(--text);">base URL</strong> of the gateway endpoint</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="background:var(--accent); color:#fff; font-size:11px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</div>
+            <div style="font-size:12px; color:var(--muted);">Exact <strong style="color:var(--text);">model name string</strong> to use in the <code style="font-family:var(--mono); font-size:11px;">"model"</code> field</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="background:var(--accent); color:#fff; font-size:11px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</div>
+            <div style="font-size:12px; color:var(--muted);">An <strong style="color:var(--text);">API key</strong> scoped to the payment app team or project</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 14 — APPENDIX: DOCKER SERVICES EXPLAINED (PART 1)
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s14">
+  <div class="slide-header">
+    <div class="eyebrow">Appendix C — Under the Hood (1/2)</div>
+    <h2>The 11 Docker Services — Simply Explained</h2>
+    <p>Think of the whole system as a library building. Each service is one person who works there, doing one specific job.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+
+    <div style="background:var(--surface); border:1px solid var(--accent); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🚪</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">nginx</div>
+        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Front Door Security Guard</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">Everyone who wants to use Onyx walks through this guard first. He checks you came in through the right door (port 443, HTTPS only), and points you either to the website or the backend. He also holds the <strong style="color:var(--text);">lock and key (TLS certificate)</strong> so nobody can eavesdrop on conversations.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🖥️</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">web_server</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Receptionist &amp; Display Board</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">This is the <strong style="color:var(--text);">pretty face</strong> — the chat interface you see in your browser. It doesn't do any thinking itself. It just shows you buttons, text boxes, and answers. When you type a question, it passes it to the brain in the back office (api_server).</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🧠</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">api_server</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Head Librarian (The Brain)</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">The most important service. When you ask a question, this is who <strong style="color:var(--text);">figures out the answer</strong>. It searches the document index, picks the most relevant chunks, writes a prompt, sends it to the LLM gateway, and streams the reply back to you — with source links.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🔄</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">background</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Night-Shift Filing Clerk</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">Works quietly in the background <strong style="color:var(--text);">24/7 without you seeing it</strong>. Every 10–60 minutes it checks Box, Confluence, SharePoint, and Teams for new or updated documents, reads them, and files them into the index so the Head Librarian can find them later.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🗄️</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">relational_db (PostgreSQL)</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Membership Register</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">A big orderly notebook that stores <strong style="color:var(--text);">who the users are</strong>, their passwords, their roles, and which connectors are configured. Also keeps track of metadata like "this document came from Confluence, last synced at 3pm." Nothing fancy — just reliable record-keeping.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🔍</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">opensearch</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Magic Search Shelf</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">This is where all document content lives as <strong style="color:var(--text);">numbers (vectors)</strong>. When you ask "what are the payment fees?", it doesn't search for exact words — it finds documents that <em>mean</em> the same thing, even if they use different words. Think of it as a very smart librarian who understands meaning, not just spelling.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 15 — APPENDIX: DOCKER SERVICES EXPLAINED (PART 2)
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s15">
+  <div class="slide-header">
+    <div class="eyebrow">Appendix C — Under the Hood (2/2)</div>
+    <h2>The 11 Docker Services — Simply Explained</h2>
+    <p>The remaining 5 services — each one still doing its own one job, all day, every day.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">📬</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">cache (Redis)</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Sticky-Note Board</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">A super-fast scratch pad used for <strong style="color:var(--text);">short-lived messages</strong>. When the background worker finds new documents to index, it sticks a note here saying "hey, go process this file." Other services grab those notes and act on them. If the power goes off, all notes disappear — that's fine, it'll just write new ones next sync.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">📦</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">minio</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Storage Room</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">A big storage room for <strong style="color:var(--text);">actual files</strong> — like if someone uploads a PDF directly into Onyx. It works exactly like Amazon S3 but runs locally on your server. Most of the time you won't notice it exists, but it's there holding files that are too big to fit elsewhere.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--green); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🧮</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">indexing_model_server</div>
+        <div style="font-size:10px; color:var(--green); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Translator (runs locally)</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">Takes every document chunk and <strong style="color:var(--text);">converts it into numbers</strong> (called an embedding) that capture its meaning. This is what makes the search so smart. It runs entirely on your server using <em>nomic-embed-text</em> — no internet call needed, no cost per document. Think of it as a translator turning words into coordinates on a map of meaning.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start;">
+      <div style="font-size:32px; flex-shrink:0;">🎯</div>
+      <div>
+        <div style="font-size:13px; font-weight:800;">inference_model_server</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Result Ranker</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7;">After OpenSearch finds 20 possible document chunks, this service <strong style="color:var(--text);">re-ranks them</strong> — like a judge deciding which ones are truly most relevant to your question. It also runs locally. The api_server then uses only the top-ranked chunks when building the answer, keeping the LLM prompt short and accurate.</div>
+      </div>
+    </div>
+
+    <div style="background:#1e1a3e; border:1px solid var(--accent); border-radius:12px; padding:16px 20px; display:flex; gap:14px; align-items:flex-start; grid-column:1/-1;">
+      <div style="font-size:32px; flex-shrink:0;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:800;">Rakuten LLM Gateway <span style="font-size:11px; color:var(--muted); font-weight:400;">(not a Docker service — your internal API)</span></div>
+        <div style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Genius on Speed Dial</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.7; max-width:900px;">This one lives outside Docker — it's Rakuten's internal LLM (like GPT-4o or Claude). The api_server calls it only when someone asks a question. It receives the question + the relevant document chunks, and <strong style="color:var(--text);">writes the actual answer in plain English</strong>. It's like calling a genius friend who's read everything — you tell them the relevant pages, they summarise the answer for you. All calls stay inside Rakuten's network. No data goes to OpenAI or Anthropic directly.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:12px; background:var(--surface2); border-radius:10px; padding:12px 18px; display:flex; align-items:center; gap:12px;">
+    <span style="font-size:20px;">💡</span>
+    <p style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">One-line summary of how they work together:</strong> The Filing Clerk (background) reads your docs → the Translator (indexing_model_server) converts them to numbers → stored in the Magic Shelf (opensearch). When you ask a question → the Brain (api_server) searches the shelf → the Ranker picks the best bits → the Genius (LLM gateway) writes the answer → the Receptionist (web_server) shows it to you.</p>
+  </div>
+</div>
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <button onclick="go(-1)">&#8592;</button>
+  <span class="counter" id="counter">1 / 15</span>
+  <button onclick="go(1)">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  function go(dir) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(slides.length - 1, current + dir));
+    slides[current].classList.add('active');
+    const total = slides.length;
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('progress').style.width = ((current + 1) / slides.length * 100) + '%';
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(-1);
+  });
+  // init progress
+  document.getElementById('progress').style.width = (1 / slides.length * 100) + '%';
+</script>
+</body>
+</html>
