@@ -1182,10 +1182,69 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 17 — APPENDIX: HUGGINGFACE WHITELIST
+══════════════════════════════════════════════════════════ -->
+<div class="slide" id="s17">
+  <div class="slide-header">
+    <div class="eyebrow">Appendix E — IT Request</div>
+    <h2>Whitelisting HuggingFace — Risks, Reality &amp; How to Ask IT</h2>
+    <p>The VM needs to reach huggingface.co once on first boot to download the embedding model. Here's how to handle it.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
+
+    <div style="background:#3d1515; border:1px solid var(--danger); border-radius:12px; padding:16px 18px;">
+      <div style="font-size:11px; font-weight:700; color:var(--danger); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Risks IT will flag</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">Data exfiltration vector</strong><br/>A whitelisted domain could be used to send data out — sets a precedent that the VM can reach the internet.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">Malicious models</strong><br/>HuggingFace hosts models from anyone — wrong model name could download something unexpected.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">Supply chain attack</strong><br/>ML model files are large binaries — not easily inspectable. A real and documented threat in 2025/2026.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">Permanent open door</strong><br/>IT prefers one-time exceptions over permanent firewall rules.</div>
+      </div>
+    </div>
+
+    <div style="background:#152820; border:1px solid var(--green); border-radius:12px; padding:16px 18px;">
+      <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Why the risk is actually low</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">One-time only</strong><br/>After first boot the model is cached in a Docker volume. The domain is never called again — request a temporary whitelist.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">Well-known, audited model</strong><br/>nomic-embed-text is a widely used open-source model from a reputable organisation — not an arbitrary file.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">SHA256 verifiable</strong><br/>The downloaded model can be verified against a known hash before use — addresses supply chain concern.</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;"><strong style="color:var(--text);">No ongoing traffic</strong><br/>After setup, zero outbound calls to HuggingFace — IT can remove the rule immediately after.</div>
+      </div>
+    </div>
+
+    <div style="background:#1e1a3e; border:1px solid var(--accent); border-radius:12px; padding:16px 18px;">
+      <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Cleanest alternative — skip IT entirely</div>
+      <div style="font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:10px;">Pre-download the model on <strong style="color:var(--text);">your own laptop</strong> (you have internet via Claude Code gateway), then load it into the Docker volume manually before first start.</div>
+      <div style="font-size:12px; color:var(--muted); line-height:1.7;">No firewall change. No IT ticket. No risk discussion.</div>
+      <div style="margin-top:10px; background:var(--surface2); border-radius:8px; padding:8px 12px; font-size:11px; color:var(--accent2);">Recommended path if IT approval looks slow or difficult.</div>
+    </div>
+
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--accent3); border-radius:12px; padding:18px 22px;">
+    <div style="font-size:12px; font-weight:700; color:var(--accent3); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">📋 IT Request Template — copy and send</div>
+    <div style="background:#0d0e16; border-radius:8px; padding:14px 18px; font-size:12px; color:#a9b7d6; line-height:1.8; font-family:var(--mono);">
+      <span style="color:#4a5280;">Subject: Temporary outbound HTTPS whitelist request — Onyx VM</span><br/><br/>
+      We need a <strong style="color:var(--accent3);">temporary</strong> one-time outbound HTTPS connection from<br/>
+      VM [<span style="color:var(--accent2);">IP ADDRESS</span>] to the following domains:<br/><br/>
+      &nbsp;&nbsp;• <span style="color:var(--accent2);">huggingface.co</span><br/>
+      &nbsp;&nbsp;• <span style="color:var(--accent2);">cdn-lfs.huggingface.co</span><br/><br/>
+      Purpose: download a specific open-source ML embedding model<br/>
+      (~1.5 GB, one-time only) on first server boot.<br/><br/>
+      Model: <span style="color:var(--accent2);">nomic-embed-text v1</span> (SHA256 verifiable before use)<br/>
+      After download: the whitelist rule <strong style="color:var(--accent3);">can be removed immediately</strong> —<br/>
+      the model is cached locally and never re-downloaded.<br/><br/>
+      <span style="color:#4a5280;">Alternatively, we can pre-download on a developer machine and</span><br/>
+      <span style="color:#4a5280;">load it manually if permanent access is a concern.</span>
+    </div>
+  </div>
+</div>
+
 <!-- ── Navigation ── -->
 <div class="nav">
   <button onclick="go(-1)">&#8592;</button>
-  <span class="counter" id="counter">1 / 16</span>
+  <span class="counter" id="counter">1 / 17</span>
   <button onclick="go(1)">&#8594;</button>
 </div>
 
