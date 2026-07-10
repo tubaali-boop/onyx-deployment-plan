@@ -230,6 +230,7 @@
     <div class="eyebrow">Solution</div>
     <h2>Why Onyx?</h2>
     <p>Open-source, self-hosted, no new cloud subscriptions. Runs entirely on your internal VM.</p>
+    <p style="margin-top:6px; font-size:11px; color:var(--accent);">* Items marked with * have detailed explanations in the Appendix slides.</p>
   </div>
   <div class="two-col">
     <div style="display:flex; flex-direction:column; gap:14px;">
@@ -242,8 +243,8 @@
         <p>Built-in support for Confluence (Data Center), SharePoint, and Teams. No custom integration code for these sources.</p>
       </div>
       <div class="card">
-        <h3><span class="icon">🤖</span> Uses Your LLM Gateway</h3>
-        <p>Points directly at Rakuten's internal OpenAI-compatible LLM endpoint. No external AI API calls, no extra cost.</p>
+        <h3><span class="icon">🤖</span> Uses Your LLM Gateway <span style="color:var(--accent);font-size:13px;">*</span></h3>
+        <p>Points directly at Rakuten's internal OpenAI-compatible LLM endpoint. No external AI API calls, no extra cost. <span style="font-size:11px; color:var(--accent);">* See Appendix A &amp; B</span></p>
       </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:14px;">
@@ -256,8 +257,8 @@
         <p>Connectors poll on a schedule (every 10–60 min). New and updated documents are automatically re-indexed.</p>
       </div>
       <div class="card">
-        <h3><span class="icon">👥</span> Multi-User</h3>
-        <p>Web UI accessible by the whole team. SSO via Azure AD — team members sign in with their existing Rakuten Microsoft account. No separate passwords.</p>
+        <h3><span class="icon">👥</span> Multi-User <span style="color:var(--accent);font-size:13px;">*</span></h3>
+        <p>Web UI accessible by the whole team. SSO via Azure AD — team members sign in with their existing Rakuten Microsoft account. No separate passwords. <span style="font-size:11px; color:var(--accent);">* See Appendix D</span></p>
       </div>
     </div>
   </div>
@@ -269,7 +270,8 @@
 <div class="slide" id="s4">
   <div class="slide-header">
     <div class="eyebrow">Architecture</div>
-    <h2>System Overview — 11 Docker Services</h2>
+    <h2>System Overview — 11 Docker Services <span style="color:var(--accent);font-size:18px;">*</span></h2>
+    <p style="margin-top:4px; font-size:11px; color:var(--accent);">* Items marked with * have detailed explanations in the Appendix slides.</p>
   </div>
   <div class="two-col" style="align-items:start; gap:40px;">
     <div class="arch" style="gap:4px;">
@@ -298,8 +300,8 @@
       </div>
       <div class="arch-arrow down">↓</div>
       <div class="arch-row" style="gap:20px;">
-        <div class="arch-box green"><div class="name">indexing_model_server</div><div class="sub">nomic-embed-text · local</div></div>
-        <div class="arch-box orange"><div class="name">Rakuten LLM Gateway</div><div class="sub">OpenAI-compatible · internal</div></div>
+        <div class="arch-box green"><div class="name">indexing_model_server *</div><div class="sub">nomic-embed-text · local · Appendix C &amp; E</div></div>
+        <div class="arch-box orange"><div class="name">Rakuten LLM Gateway *</div><div class="sub">OpenAI-compatible · Appendix A &amp; B</div></div>
       </div>
     </div>
     <div style="display:flex; flex-direction:column; gap:12px;">
@@ -314,7 +316,7 @@
       </div>
       <div class="card">
         <h3><span class="icon">🔐</span> Auth Path</h3>
-        <p style="font-size:12px;">api_server handles sessions against Postgres · AUTH_TYPE=oidc · SSO via Azure AD — same login as Outlook, Teams &amp; SharePoint</p>
+        <p style="font-size:12px;">api_server handles sessions against Postgres · AUTH_TYPE=oidc · SSO via Azure AD — same login as Outlook, Teams &amp; SharePoint <span style="color:var(--accent);">* Appendix D</span></p>
       </div>
       <div style="background: var(--surface2); border-radius: 8px; padding: 12px 16px; font-size:12px; color:var(--muted);">
         <strong style="color:var(--text);">Original docs stay in place.</strong> Only text embeddings (~few KB per chunk) are stored on the VM. Box/Confluence/SharePoint files are never copied.
@@ -402,6 +404,7 @@
   <div class="slide-header">
     <div class="eyebrow">Infrastructure</div>
     <h2>VM Spec &amp; Deployment</h2>
+    <p style="margin-top:4px; font-size:11px; color:var(--accent);">* Items marked with * have detailed explanations in the Appendix slides.</p>
   </div>
   <div class="spec-grid">
     <div class="spec-card">
@@ -448,8 +451,8 @@
         <p>Set heap to exactly 50% of VM RAM. On 32 GB VM: <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g</code>. If OpenSearch OOMs, it restarts and may corrupt the index.</p>
       </div>
       <div class="card">
-        <h3><span class="icon">🌐</span> Outbound Internet Required (once)</h3>
-        <p>The embedding model server downloads ~1.5 GB from HuggingFace on first start. Whitelist <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">huggingface.co</code> on the VM firewall before Day 1.</p>
+        <h3><span class="icon">🌐</span> Outbound Internet Required (once) <span style="color:var(--accent);font-size:13px;">*</span></h3>
+        <p>The embedding model server downloads ~1.5 GB from HuggingFace on first start. Whitelist <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">huggingface.co</code> on the VM firewall before Day 1. <span style="font-size:11px; color:var(--accent);">* See Appendix E</span></p>
       </div>
       <div class="card">
         <h3><span class="icon">👤</span> First Admin Account</h3>
@@ -466,6 +469,7 @@
   <div class="slide-header">
     <div class="eyebrow">Configuration</div>
     <h2>Critical .env Values</h2>
+    <p style="margin-top:0; font-size:11px; color:var(--accent);">* Items marked with * have detailed explanations in the Appendix slides.</p>
     <p>These must be set before <code style="background:var(--surface2); padding:1px 8px; border-radius:4px; font-family:var(--mono); font-size:13px;">docker compose up</code>. Items marked ACTION REQUIRED need your input.</p>
   </div>
   <div class="two-col" style="align-items:start;">
@@ -473,7 +477,7 @@
 <span class="comment"># ── Version (pin to a release tag) ──────────</span>
 <span class="key">IMAGE_TAG</span>=<span class="val">v2.x.x</span>          <span class="comment"># ACTION REQUIRED</span>
 
-<span class="comment"># ── Auth (SSO via Azure AD) ──────────────────</span>
+<span class="comment"># ── Auth (SSO via Azure AD) * Appendix D ────</span>
 <span class="key">AUTH_TYPE</span>=<span class="val">oidc</span>
 <span class="key">OAUTH_CLIENT_ID</span>=<span class="val">&lt;Azure app client ID&gt;</span>     <span class="comment"># ACTION REQUIRED</span>
 <span class="key">OAUTH_CLIENT_SECRET</span>=<span class="val">&lt;Azure client secret&gt;</span>  <span class="comment"># ACTION REQUIRED</span>
@@ -498,11 +502,11 @@
     </div>
     <div style="display:flex; flex-direction:column; gap:12px;">
       <div class="card">
-        <h3><span class="icon">🤖</span> LLM Gateway — Admin Panel</h3>
+        <h3><span class="icon">🤖</span> LLM Gateway — Admin Panel <span style="color:var(--accent);font-size:13px;">*</span></h3>
         <p>After deployment, configure via:<br/><strong>Admin Panel → Language Models → Add Provider</strong><br/>Type: LiteLLM Proxy · API Base: your internal gateway URL · Model: exact name your gateway expects</p>
       </div>
       <div class="card">
-        <h3><span class="icon">🔤</span> Embedding — Local (no config needed)</h3>
+        <h3><span class="icon">🔤</span> Embedding — Local (no config needed) <span style="color:var(--accent);font-size:13px;">*</span></h3>
         <p>The <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">indexing_model_server</code> runs <strong>nomic-embed-text</strong> locally. No API key required. Uses ~4 GB RAM after model load. No changes needed for v1.</p>
         <div style="margin-top:10px; background:var(--surface2); border-left:3px solid var(--green); border-radius:0 8px 8px 0; padding:10px 14px;">
           <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">What this model actually does</div>
@@ -524,6 +528,7 @@
   <div class="slide-header">
     <div class="eyebrow">Implementation</div>
     <h2>Day-by-Day Rollout Plan</h2>
+    <p style="margin-top:4px; font-size:11px; color:var(--accent);">* Items marked with * have detailed explanations in the Appendix slides.</p>
   </div>
   <div class="two-col" style="align-items:start;">
     <div class="timeline">
@@ -581,7 +586,7 @@
           <div class="timeline-line"></div>
         </div>
         <div class="timeline-content">
-          <h4>SSO + SharePoint + Teams</h4>
+          <h4>SSO + SharePoint + Teams <span style="color:var(--accent);font-size:11px;">* Appendix D</span></h4>
           <ul>
             <li>Azure AD: register one app named "Onyx" (covers SSO + connectors)</li>
             <li>Add redirect URI: onyx.internal.rakuten.com/auth/oidc/callback</li>
