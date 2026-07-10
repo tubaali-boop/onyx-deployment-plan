@@ -504,6 +504,10 @@
       <div class="card">
         <h3><span class="icon">🔤</span> Embedding — Local (no config needed)</h3>
         <p>The <code style="background:var(--surface2); padding:1px 6px; border-radius:4px; font-family:var(--mono); font-size:11px;">indexing_model_server</code> runs <strong>nomic-embed-text</strong> locally. No API key required. Uses ~4 GB RAM after model load. No changes needed for v1.</p>
+        <div style="margin-top:10px; background:var(--surface2); border-left:3px solid var(--green); border-radius:0 8px 8px 0; padding:10px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">What this model actually does</div>
+          <p style="font-size:12px; color:var(--muted); line-height:1.7;">It reads a piece of text — a paragraph from a document, or your chat question — and converts it into a list of numbers (called a <strong style="color:var(--text);">vector</strong> or <strong style="color:var(--text);">embedding</strong>) that captures the <em>meaning</em> of that text mathematically. Two pieces of text that mean similar things produce numbers that are close together, even if they use completely different words. That's what allows Onyx to find "transaction charges are calculated as follows…" when you ask "what are the payment fees?" — same meaning, different words. It never generates answers — that's the LLM gateway's job. Its only job is <strong style="color:var(--text);">meaning → numbers</strong>, done entirely locally on your VM.</p>
+        </div>
       </div>
       <div class="card">
         <h3><span class="icon">🌐</span> .env.nginx</h3>
@@ -1055,6 +1059,10 @@
         <div style="font-size:13px; font-weight:800;">indexing_model_server</div>
         <div style="font-size:10px; color:var(--green); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Translator (runs locally)</div>
         <div style="font-size:12px; color:var(--muted); line-height:1.7;">Takes every document chunk and <strong style="color:var(--text);">converts it into numbers</strong> (called an embedding) that capture its meaning. This is what makes the search so smart. It runs entirely on your server using <em>nomic-embed-text</em> — no internet call needed, no cost per document. Think of it as a translator turning words into coordinates on a map of meaning.</div>
+        <div style="margin-top:8px; background:var(--bg); border-left:3px solid var(--green); border-radius:0 6px 6px 0; padding:8px 12px;">
+          <div style="font-size:11px; color:var(--green); font-weight:700; margin-bottom:3px;">Why it matters</div>
+          <div style="font-size:11px; color:var(--muted); line-height:1.6;">Ask <em>"what are the payment fees?"</em> → it finds a doc saying <em>"transaction charges are calculated as follows…"</em> — same meaning, different words. It never writes answers — that's the LLM's job. Its only job: <strong style="color:var(--text);">meaning → numbers</strong>.</div>
+        </div>
       </div>
     </div>
 
